@@ -2,12 +2,38 @@ package reversi
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 )
 
 const horizontalMask string = "011110011110011110011110011110011110"
 const verticalMask string = "000000111111111111111111111111000000"
 const allSideMask string = "000000011110011110011110011110000000"
+
+/*
+敵の石を置く場所を返す関数
+
+引数は、自分の石の配置状況、敵の石の配置状況
+戻り値は、敵が石を置く場所
+最終的には常に敵が勝つ場所に石を置く用に実装。最初は置ける場所の中からランダムに返すでよい。
+*/
+func GetOpponentsStoneSite(player int64, opponent int64) int64 {
+
+	var reversibleStones int64 = GetReversibleStone(player, opponent)
+
+	var reversibleStonesString string = sixtyFourBitIntToBitString(reversibleStones)
+
+	choice := []int{}
+	for i := 0; i < len(reversibleStonesString); i++ {
+		if reversibleStonesString[i:i+1] == "1" {
+			choice = append(choice, i)
+		}
+	}
+
+	var rand int = choice[rand.Intn(len(choice))]
+
+	return 1 << rand
+}
 
 /*
 置ける場所を列挙する関数
@@ -26,6 +52,64 @@ func GetReversibleStone(player int64, opponent int64) int64 {
 	output = output | getDownLeftReversibleStone(player, opponent)
 	output = output | getDownRightReversibleStone(player, opponent)
 	return output
+}
+
+/*
+石を置く関数
+
+引数は、石を置きたい場所、自分の石の配置状況、敵の石の配置状況
+戻り値は石を置いた後の自分の石の配置状況、敵の石の配置状況
+1.まず、石を置きたい場所にのみbitが立っている盤面を用意する。
+2.次に左へ1ビットシフトさせ、horizontalMaskとANDして、結果をtmpとする
+3.tmpに対して敵の盤面をANDして結果をreverse tmpとする
+4.tmp&reverse tmpが0になるまで、tmpをビットシフトして敵の石の配置状況とANDし、reverse tmpにorする事を続ける
+5.4が終わったタイミングで、自分の石の配置状況とtmpをANDする
+6.5の結果が0以外ならreverse |= reverse tmpとする。
+7.2から6の処理を、残り七方向について実施する。
+8.7が終わり、reverseが出来たら、自分の石の配置状況を、自分の石の配置状況と石を置く場所とreverseでorしたもので更新し、敵の石の配置状況を、敵の石の配置状況とreverseを反転させたbit列のandで更新する。
+*/
+func PutStoneToSpecifiedSiteAndReverse(putStoneSite int64, player int64, opponent int64) (int64, int64) {
+	var reverse int64 = 0
+	reverse |= getReverseTargetForSpecifiedDirection(putStoneSite, player, opponent, "right", 1)
+	reverse |= getReverseTargetForSpecifiedDirection(putStoneSite, player, opponent, "left", 1)
+	reverse |= getReverseTargetForSpecifiedDirection(putStoneSite, player, opponent, "right", 5)
+	reverse |= getReverseTargetForSpecifiedDirection(putStoneSite, player, opponent, "left", 5)
+	reverse |= getReverseTargetForSpecifiedDirection(putStoneSite, player, opponent, "right", 6)
+	reverse |= getReverseTargetForSpecifiedDirection(putStoneSite, player, opponent, "left", 6)
+	reverse |= getReverseTargetForSpecifiedDirection(putStoneSite, player, opponent, "right", 7)
+	reverse |= getReverseTargetForSpecifiedDirection(putStoneSite, player, opponent, "left", 7)
+
+	var returnPlayer int64
+	var returnOpponent int64
+	returnPlayer = player | putStoneSite | reverse
+	returnOpponent = opponent &^ reverse
+
+	return returnPlayer, returnOpponent
+}
+
+func getReverseTargetForSpecifiedDirection(putStoneSite int64, player int64, opponent int64, shift_direction string, shift_count int) int64 {
+
+	var tmp int64
+	if shift_direction == "right" {
+		tmp = bitStringTo64BitInt(horizontalMask) & (putStoneSite >> int64(shift_count))
+	} else {
+		tmp = bitStringTo64BitInt(horizontalMask) & (putStoneSite << int64(shift_count))
+	}
+	var reverse_tmp int64 = tmp & opponent
+	for tmp&reverse_tmp != 0 {
+		if shift_direction == "right" {
+			tmp = tmp >> int64(shift_count)
+		} else {
+			tmp = tmp << int64(shift_count)
+		}
+		reverse_tmp |= tmp & opponent
+	}
+	if player&tmp != 0 {
+		return reverse_tmp
+	}
+
+	return 0
+
 }
 
 /*
