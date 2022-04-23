@@ -1,0 +1,34 @@
+package main
+
+import (
+	"reversi_server/reversi"
+	"strconv"
+	"strings"
+
+	"github.com/aws/aws-lambda-go/lambda"
+)
+
+type MyEvent struct {
+	PlayerAndOpponent string `json:"PlayerAndOpponent"`
+}
+
+type MyResponse struct {
+	PuttableStoneSite string `json:"PuttableStoneSite"`
+}
+
+func hello(event MyEvent) (MyResponse, error) {
+	var player int64
+	var opponent int64
+	player, _ = strconv.ParseInt(strings.Split(event.PlayerAndOpponent, ";")[0], 10, 64)
+	opponent, _ = strconv.ParseInt(strings.Split(event.PlayerAndOpponent, ";")[1], 10, 64)
+
+	var puttableStoneSite = reversi.GetReversibleStone(player, opponent)
+
+	return MyResponse{PuttableStoneSite: strconv.FormatInt(puttableStoneSite, 10)}, nil
+}
+
+
+
+func main() {
+	lambda.Start(hello)
+}
