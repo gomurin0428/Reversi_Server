@@ -1,4 +1,4 @@
-  package reversi
+package reversi
 
 import (
 	"strings"
@@ -1063,6 +1063,111 @@ func TestGetReversibleStone(t *testing.T) {
 	if sixtyFourBitIntToBitString(output) != expectation {
 		t.Fatalf("failed Test Output is %s", sixtyFourBitIntToBitString(output))
 	}
+}
+
+func TestGetOpponentsStoneSite(t *testing.T) {
+	var player string = `
+	000000
+	000000
+	000000
+	001000
+	000000
+	000000`
+	player = removeNot0Or1String(player)
+
+	var opponent string = `
+	000000
+	000000
+	011100
+	010100
+	011100
+	000000
+	`
+	opponent = removeNot0Or1String(opponent)
+
+	var output int64 = GetOpponentsStoneSite(bitStringTo64BitInt(player), bitStringTo64BitInt(opponent))
+
+	var expectation string = `
+	000000
+	101010
+	000000
+	100010
+	000000
+	101010`
+
+	expectation = removeNot0Or1String(expectation)
+
+	var expectationInt64 = bitStringTo64BitInt(expectation)
+
+	if (expectationInt64 & (output)) == 0 {
+		t.Fatalf("failed Test Output is %s", sixtyFourBitIntToBitString(output))
+	}
+
+}
+
+func TestPutStoneToSpecifiedSiteAndReverse(t *testing.T) {
+
+	var putStoneSite string = `
+	000000
+	001000
+	000000
+	000000
+	000000
+	000000
+	`
+
+	putStoneSite = removeNot0Or1String(putStoneSite)
+
+	var player string = `
+	000000
+	000000
+	000000
+	001000
+	000000
+	000000`
+	player = removeNot0Or1String(player)
+
+	var opponent string = `
+	000000
+	000000
+	011100
+	010100
+	011100
+	000000
+	`
+	opponent = removeNot0Or1String(opponent)
+
+	var outputPlayer int64
+	var outputOpponent int64
+
+	outputPlayer, outputOpponent = PutStoneToSpecifiedSiteAndReverse(bitStringTo64BitInt(putStoneSite), bitStringTo64BitInt(player), bitStringTo64BitInt(opponent))
+
+	var expectedPlayer string = `
+	000000
+	001000
+	001000
+	001000
+	000000
+	000000
+	`
+
+	expectedPlayer = removeNot0Or1String(expectedPlayer)
+
+	var expectedOpponent string = `
+	000000
+	000000
+	010100
+	010100
+	011100
+	000000
+	`
+
+	expectedOpponent = removeNot0Or1String(expectedOpponent)
+
+	if !(bitStringTo64BitInt(expectedPlayer) == outputPlayer && bitStringTo64BitInt(expectedOpponent) == outputOpponent) {
+		t.Fatalf("failed;Expected Output Player is %s but %s ; Expected Output Opponent is %s but %s", (expectedPlayer), sixtyFourBitIntToBitString(outputPlayer), (expectedOpponent), sixtyFourBitIntToBitString(outputOpponent))
+	}
+
 }
 
 func removeNot0Or1String(input string) string {
